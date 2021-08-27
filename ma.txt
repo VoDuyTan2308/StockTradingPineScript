@@ -1,0 +1,60 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © tankeangnam
+
+//@version=4
+//@version=4
+study(title="Moving Average", shorttitle="MA", overlay=true)
+input1 = input(20, minval=1, title="MA20")
+input2 = input(50, minval=1, title="MA50")
+src = input(close, title="Source")
+from = input(defval = timestamp("18 Aug 2015 9:30 +0000"), title = "From", type = input.time)
+offset = input(title="Offset", type=input.integer, defval=0, minval=-500, maxval=500)
+ma20 = sma(src, input1)
+ma50 = sma(src, input2)
+plot(ma20, color=color.green, title="MA20", offset=offset)
+plot(ma50, color=color.red, title="MA50", offset=offset)
+plotshape(crossover(ma20,ma50) and time > from ? low - 0.05*low: na, "MA up", style=shape.triangleup, location=location.absolute, color=color.green, size=size.tiny)
+
+// code compute probability & expectation
+t = input(10, title="T+", minval = 0, maxval = 30)
+if(time > from)
+    var count = 0
+    var winCount = 0
+    var float totalProfit = 0
+    var float winPercent = 0
+    var float expect = 0
+    var float _expect = 0
+    var float totalPercentExpect = 0
+    var c = false
+    var countT=0
+    var float priceBuy = 0
+    if c == true
+        countT:= countT + 1
+    if(crossover(ma20, ma50))
+        c := true
+        count := count + 1
+        priceBuy := hl2
+        
+    if(countT == t)
+        profit = hl2 - priceBuy
+        ex = profit/priceBuy*100
+        if(profit > 0)
+            winCount := winCount + 1
+        totalProfit := totalProfit + profit
+        totalPercentExpect := totalPercentExpect + ex
+        countT:= 0
+        c:=false
+    winPercent := winCount/count * 100
+    expect := totalProfit/count
+    _expect := totalPercentExpect/count
+    
+    txt = "MA _  N: " + tostring(count) + ", P(win|t=" + tostring(t) + "): " + tostring(round( winPercent * 100) / 100) + "%, E: " + tostring(round(expect * 100) / 100) + "đ (" + tostring(round(_expect * 100) / 100) + "%)"
+
+    if barstate.islast
+        l = label.new(time + (time-time[39]), low, 
+              txt,
+              color=color.green,
+              textcolor=color.black,
+              style=label.style_label_up,
+              xloc=xloc.bar_time,
+              size=size.normal)

@@ -1,0 +1,56 @@
+//@version=4
+study(title="Relative Strength Index", shorttitle="RSI", format=format.price, precision=2)
+len = input(14, minval=1, title="Length")
+src = input(close, "Source", type = input.source)
+from = input(defval = timestamp("01 Jan 2015 9:30 +0000"), title = "From", type = input.time)
+up = rma(max(change(src), 0), len)
+down = rma(-min(change(src), 0), len)
+rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+plot(rsi, "RSI", color=#8E1599)
+band1 = hline(70, "Upper Band", color=#C0C0C0)
+band0 = hline(30, "Lower Band", color=#C0C0C0)
+fill(band1, band0, color=#9915FF, transp=90, title="Background")
+plotshape(crossover(rsi,30) ? rsi - 20: na, style=shape.triangleup, location=location.absolute, color=color.green, size=size.tiny)
+
+// code compute probability & expectation
+t = input(10, title="T+", minval = 0, maxval = 30)
+if(time > from)
+    var count = 0
+    var winCount = 0
+    var float totalProfit = 0
+    var float winPercent = 0
+    var float expect = 0
+    var float _expect = 0
+    var float totalPercentExpect = 0
+    var c = false
+    var countT=0
+    var float priceBuy = 0
+    if c == true
+        countT:= countT + 1
+    if(crossover(rsi, 30))
+        c := true
+        count := count + 1
+        priceBuy := hl2
+        
+    if(countT == t)
+        profit = hl2 - priceBuy
+        ex = profit/priceBuy*100
+        if(profit > 0)
+            winCount := winCount + 1
+        totalProfit := totalProfit + profit
+        totalPercentExpect := totalPercentExpect + ex
+        countT:= 0
+        c:=false
+    winPercent := winCount/count * 100
+    expect := totalProfit/count
+    _expect := totalPercentExpect/count
+    txt = "RSI _  N: " + tostring(count) + ", P(win|t=" + tostring(t) + "): " + tostring(round( winPercent * 100) / 100) + "%, E: " + tostring(round(expect * 100) / 100) + "đ (" + tostring(round(_expect * 100) / 100) + "%)"
+    
+    if barstate.islast
+        l = label.new(time + (time-time[39]), 50, 
+              txt,
+              color=color.green,
+              textcolor=color.black,
+              style=label.style_label_up,
+              xloc=xloc.bar_time,
+              size=size.normal)

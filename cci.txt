@@ -1,0 +1,58 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © tankeangnam
+
+//@version=4
+study(title="Commodity Channel Index", shorttitle="CCI", format=format.price, precision=2)
+length = input(20, minval=1)
+src = input(close, title="Source")
+from = input(defval = timestamp("01 Jan 2015 9:30 +0000"), title = "From", type = input.time)
+ma = sma(src, length)
+cci = (src - ma) / (0.015 * dev(src, length))
+plot(cci, "CCI", color=#996A15)
+band1 = hline(100, "Upper Band", color=#C0C0C0, linestyle=hline.style_dashed)
+band0 = hline(-100, "Lower Band", color=#C0C0C0, linestyle=hline.style_dashed)
+fill(band1, band0, color=#9C6E1B, title="Background")
+plotshape(crossover(cci, -100) ? cci - 140: na, style=shape.triangleup, location=location.absolute, color=color.green, size=size.tiny)
+var a = array.new_float(0)
+// code compute probability & expectation
+t = input(10, title="T+", minval = 0, maxval = 30)
+if(time > from)
+    var count = 0
+    var winCount = 0
+    var float totalProfit = 0
+    var float winPercent = 0
+    var float expect = 0
+    var float _expect = 0
+    var float totalPercentExpect = 0
+    var c = false
+    var countT=0
+    var float priceBuy = 0
+    if c == true
+        countT:= countT + 1
+    if(crossover(cci, -100))
+        c := true
+        count := count + 1
+        priceBuy := hl2
+        
+    if(countT == t)
+        profit = hl2 - priceBuy
+        ex = profit/priceBuy*100
+        if(profit > 0)
+            winCount := winCount + 1
+        totalProfit := totalProfit + profit
+        totalPercentExpect := totalPercentExpect + ex
+        countT:= 0
+        c:=false
+    winPercent := winCount/count * 100
+    expect := totalProfit/count
+    _expect := totalPercentExpect/count
+    txt = "CCI _  N: " + tostring(count) + ", P(win|t=" + tostring(t) + "): " + tostring(round( winPercent * 100) / 100) + "%, E: " + tostring(round(expect * 100) / 100) + "đ (" + tostring(round(_expect * 100) / 100) + "%)"
+    
+    if barstate.islast
+        l = label.new(time + (time-time[39]), 50, 
+              txt,
+              color=color.green,
+              textcolor=color.black,
+              style=label.style_label_up,
+              xloc=xloc.bar_time,
+              size=size.normal)

@@ -1,0 +1,75 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © tankeangnam
+
+//@version=4
+study(title="MACD", shorttitle="MACD")
+// Getting inputs
+fast_length = input(title="Fast Length", type=input.integer, defval=12)
+slow_length = input(title="Slow Length", type=input.integer, defval=26)
+src = input(title="Source", type=input.source, defval=close)
+signal_length = input(title="Signal Smoothing", type=input.integer, minval = 1, maxval = 50, defval = 9)
+from = input(defval = timestamp("01 Jan 2015 9:30 +0000"), title = "From", type = input.time)
+sma_source = input(title="Simple MA (Oscillator)", type=input.bool, defval=false)
+sma_signal = input(title="Simple MA (Signal Line)", type=input.bool, defval=false)
+// Plot colors
+col_grow_above = #26A69A
+col_grow_below = #FFCDD2
+col_fall_above = #B2DFDB
+col_fall_below = #EF5350
+col_macd = #0094ff
+col_signal = #ff6a00
+// Calculating
+fast_ma = sma_source ? sma(src, fast_length) : ema(src, fast_length)
+slow_ma = sma_source ? sma(src, slow_length) : ema(src, slow_length)
+macd = fast_ma - slow_ma
+signal = sma_signal ? sma(macd, signal_length) : ema(macd, signal_length)
+hist = macd - signal
+plot(hist, title="Histogram", style=plot.style_columns, color=(hist>=0 ? (hist[1] < hist ? col_grow_above : col_fall_above) : (hist[1] < hist ? col_grow_below : col_fall_below) ), transp=0 )
+plot(macd, title="MACD", color=col_macd, transp=0)
+plot(signal, title="Signal", color=col_signal, transp=0)
+plotshape(crossover(macd, signal) ? (macd > 0 ? macd - 2000 : (macd - 2000)): na, style=shape.triangleup, location=location.absolute, color=color.green, size=size.tiny)
+
+
+// code compute probability & expectation
+t = input(5, title="T+", minval = 0, maxval = 30)
+if(time > from)
+    var count = 0
+    var winCount = 0
+    var float totalProfit = 0
+    var float winPercent = 0
+    var float expect = 0
+    var float _expect = 0
+    var float totalPercentExpect = 0
+    var c = false
+    var countT=0
+    var float priceBuy = 0
+    if c == true
+        countT:= countT + 1
+    if(crossover(macd, signal))
+        c := true
+        count := count + 1
+        priceBuy := hl2
+        
+    if(countT == t)
+        profit = hl2 - priceBuy
+        ex = profit/priceBuy*100
+        if(profit > 0)
+            winCount := winCount + 1
+        totalProfit := totalProfit + profit
+        totalPercentExpect := totalPercentExpect + ex
+        countT:= 0
+        c:=false
+    winPercent := winCount/count * 100
+    expect := totalProfit/count
+    _expect := totalPercentExpect/count
+    
+    txt = "MACD _  N: " + tostring(count) + ", P(win|t=" + tostring(t) + "): " + tostring(round( winPercent * 100) / 100) + "%, E: " + tostring(round(expect * 100) / 100) + "đ (" + tostring(round(_expect * 100) / 100) + "%)"
+    
+    if barstate.islast
+        l = label.new(time + (time-time[39]), 1000, 
+              txt,
+              color=color.green,
+              textcolor=color.black,
+              style=label.style_label_up,
+              xloc=xloc.bar_time,
+              size=size.normal)
